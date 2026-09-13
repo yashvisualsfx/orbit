@@ -71,11 +71,40 @@ curl https://orbit-relay-production.up.railway.app/health
 The relay holds long-lived WebSocket connections, which is why it needs an
 always-on host rather than serverless functions.
 
-> **Housekeeping:** `relay/railway.json` uses Railway's Config-as-Code, which is
-> deprecated and stops working on 2026-12-01. `railway config migrate` generates
-> a `.railway/railway.ts` replacement, but it names the service `relay` while the
-> deployed one is `orbit-relay` — correct that name before applying, or the apply
-> can create a second service.
+### Infrastructure as code
+
+`relay/railway.json` (Config as Code) is deprecated and stops being read on
+2026-12-01, so the relay is now described in **`relay/.railway/railway.ts`**:
+
+```bash
+cd relay
+railway config plan     # preview
+railway config apply    # write the settings to the live service
+```
+
+Two traps, both already dealt with in the committed file:
+
+- **The service must be named `orbit-relay`.** `railway config migrate` names it
+  `relay`, which would make the apply create a *second* service and move the
+  public URL. The file was instead generated with `railway config pull` (which
+  reads the live project) and the deploy settings from `railway.json` were merged
+  back in by hand.
+- **On Windows the SDK's version gate misfires.** `railway/iac` shells out to
+  `process.env._ || "railway"` to check the CLI version; Windows never sets `_`,
+  and `node --version` prints `v24.19.0`, whose leading `v` defeats the SDK's
+  version regex. Point `_` at the real CLI binary for the call:
+
+  ```powershell
+  $env:_ = "$env:APPDATA\npm\node_modules\@railway\cli\bin\railway.exe"
+  ```
+
+`railway config plan` should report **0 to add, 0 to destroy** — anything else
+means the file has drifted from the live project. Once `apply` has run,
+`relay/railway.json` can be deleted; until then it is what actually configures
+the deploy, so both files are kept in sync.
+
+The `railway` npm package in the repo root is only the authoring SDK for that
+file — it is not part of the relay or of the website.
 
 ### Heartbeats
 

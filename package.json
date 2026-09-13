@@ -1,0 +1,14 @@
+{
+  "name": "orbit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Orbit - control a Windows PC from any browser. Repo-level tooling only; web/, relay/ and agent/ each have their own package.json.",
+  "scripts": {
+    "build:exe": "node scripts/build-exe.mjs",
+    "relay:plan": "cd relay && railway config plan",
+    "relay:apply": "cd relay && railway config apply"
+  },
+  "devDependencies": {
+    "railway": "^3.11.0"
+  }
+}
