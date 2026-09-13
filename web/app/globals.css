@@ -1,0 +1,349 @@
+@import "tailwindcss";
+
+/*
+  Orbit design tokens.
+
+  Colours are Apple's own system values rather than a generic palette: #1d1d1f
+  text, #f5f5f7 secondary surfaces, #0071e3 action blue in light and #2997ff in
+  dark. Type is the native stack, so Apple devices render in real SF Pro and
+  Windows 11 in Segoe UI Variable - no webfont to download, and it reads as part
+  of the operating system rather than as a template.
+*/
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "Segoe UI Variable Display", "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+  --radius-pill: 980px;
+}
+
+:root {
+  color-scheme: light;
+
+  --bg: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-secondary: #f5f5f7;
+  --bg-tertiary: #ececee;
+
+  --fg: #1d1d1f;
+  --fg-secondary: #6e6e73;
+  --fg-tertiary: #86868b;
+
+  --separator: #d2d2d7;
+  --separator-soft: #e8e8ed;
+
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --link: #0066cc;
+  --danger: #d70015;
+  --success: #248a3d;
+
+  --nav-bg: rgba(255, 255, 255, 0.72);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.06);
+  --shadow-lift: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --bg: #000000;
+    --bg-elevated: #1c1c1e;
+    --bg-secondary: #1d1d1f;
+    --bg-tertiary: #2c2c2e;
+
+    --fg: #f5f5f7;
+    --fg-secondary: #a1a1a6;
+    --fg-tertiary: #86868b;
+
+    --separator: #38383a;
+    --separator-soft: #2c2c2e;
+
+    --accent: #2997ff;
+    --accent-hover: #47a5ff;
+    --link: #2997ff;
+    --danger: #ff453a;
+    --success: #30d158;
+
+    --nav-bg: rgba(22, 22, 23, 0.72);
+    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+    --shadow-lift: 0 12px 40px rgba(0, 0, 0, 0.55);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #000000;
+  --bg-elevated: #1c1c1e;
+  --bg-secondary: #1d1d1f;
+  --bg-tertiary: #2c2c2e;
+
+  --fg: #f5f5f7;
+  --fg-secondary: #a1a1a6;
+  --fg-tertiary: #86868b;
+
+  --separator: #38383a;
+  --separator-soft: #2c2c2e;
+
+  --accent: #2997ff;
+  --accent-hover: #47a5ff;
+  --link: #2997ff;
+  --danger: #ff453a;
+  --success: #30d158;
+
+  --nav-bg: rgba(22, 22, 23, 0.72);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lift: 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.47;
+  letter-spacing: -0.012em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Apple tightens headline tracking as size grows; these mirror that ramp. */
+.display-xl {
+  font-size: clamp(2.75rem, 7.5vw, 5.5rem);
+  line-height: 1.05;
+  font-weight: 600;
+  letter-spacing: -0.028em;
+}
+
+.display-lg {
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  line-height: 1.09;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+}
+
+.display-md {
+  font-size: clamp(1.5rem, 3.2vw, 2.125rem);
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+}
+
+.eyebrow {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--accent);
+}
+
+.lede {
+  font-size: clamp(1.0625rem, 1.6vw, 1.3125rem);
+  line-height: 1.42;
+  color: var(--fg-secondary);
+  letter-spacing: -0.01em;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.6rem 1.35rem;
+  border-radius: var(--radius-pill);
+  font-size: 1.0625rem;
+  font-weight: 400;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color 0.22s ease, color 0.22s ease, opacity 0.22s ease,
+    transform 0.12s ease;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid transparent;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.btn-secondary:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.btn-quiet {
+  background: var(--bg-tertiary);
+  color: var(--fg);
+  border: 1px solid transparent;
+}
+
+.btn-quiet:hover {
+  background: color-mix(in srgb, var(--fg) 10%, var(--bg-tertiary));
+}
+
+.btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Apple's chevron link, e.g. "Learn more >" */
+.link-arrow {
+  color: var(--link);
+  font-size: 1.0625rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  cursor: pointer;
+}
+
+.link-arrow:hover {
+  text-decoration: underline;
+}
+
+/* ------------------------------------------------- grouped inset list (iOS) */
+.inset-group {
+  background: var(--bg-elevated);
+  border: 1px solid var(--separator-soft);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.inset-row {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  width: 100%;
+  min-height: 52px;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: transparent;
+  transition: background-color 0.15s ease;
+}
+
+.inset-row + .inset-row {
+  border-top: 1px solid var(--separator-soft);
+}
+
+button.inset-row:hover {
+  background: var(--bg-secondary);
+}
+
+button.inset-row:active {
+  background: var(--bg-tertiary);
+}
+
+/* ------------------------------------------------------ segmented control */
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--bg-tertiary);
+  border-radius: 9px;
+  gap: 2px;
+}
+
+.segmented button {
+  padding: 0.4rem 0.95rem;
+  border-radius: 7px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--fg);
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.segmented button[data-active="true"] {
+  background: var(--bg-elevated);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* ------------------------------------------------------------------ motion */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+}
+
+.rise-in {
+  animation: rise-in 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Horizontal rails scroll without showing a bar. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+.env*.local
+*.log
+.DS_Store
+.vercel
+# The packaged agent is a build output. agent/dist is ignored, but the copy the
+# website serves (web/public/Orbit.exe) is tracked and deployed - rebuild both
+# with scripts/build-exe.mjs after changing the agent or the relay URL.
+agent/dist/

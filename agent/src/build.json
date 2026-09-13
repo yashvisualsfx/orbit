@@ -1,0 +1,4 @@
+{
+  "relay": "wss://orbit-relay-production.up.railway.app",
+  "web": "https://orbit-rho-ecru.vercel.app"
+}

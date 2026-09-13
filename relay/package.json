@@ -1,0 +1,14 @@
+{
+  "name": "orbit-relay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Orbit relay - routes control messages between browsers and PC agents.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
