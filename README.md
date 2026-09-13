@@ -73,35 +73,38 @@ always-on host rather than serverless functions.
 
 ### Infrastructure as code
 
-`relay/railway.json` (Config as Code) is deprecated and stops being read on
-2026-12-01, so the relay is now described in **`relay/.railway/railway.ts`**:
+Railway's Config as Code (`railway.json`) is deprecated and stops being read on
+2026-12-01, so the relay is described in **`relay/.railway/railway.ts`** instead
+and `railway.json` is gone. The settings it used to carry — NIXPACKS builder,
+`npm start`, the `/health` healthcheck — are now applied to the service itself:
 
 ```bash
 cd relay
-railway config plan     # preview
-railway config apply    # write the settings to the live service
+railway config plan     # preview; should say "already up to date"
+railway config apply    # write the file's settings to the live service
 ```
 
-Two traps, both already dealt with in the committed file:
+Three things worth knowing, all already handled in the committed file:
 
 - **The service must be named `orbit-relay`.** `railway config migrate` names it
   `relay`, which would make the apply create a *second* service and move the
-  public URL. The file was instead generated with `railway config pull` (which
-  reads the live project) and the deploy settings from `railway.json` were merged
-  back in by hand.
+  public URL. The file was generated with `railway config pull` (which reads the
+  live project) and the deploy settings were merged back in by hand.
+- **Restart policy is not declared.** `railway.json` asked for `ON_FAILURE` with
+  10 retries, which is what Railway already does by default — the dashboard
+  shows On Failure / 10 — and the API reports those fields as unset, so
+  declaring them would leave `plan` permanently showing a change that can never
+  read back as applied.
 - **On Windows the SDK's version gate misfires.** `railway/iac` shells out to
   `process.env._ || "railway"` to check the CLI version; Windows never sets `_`,
   and `node --version` prints `v24.19.0`, whose leading `v` defeats the SDK's
-  version regex. Point `_` at the real CLI binary for the call:
+  version regex, so the CLI reports "requires Railway CLI 5.42.1 or newer" no
+  matter how new it is. Call the real binary, which makes the shell set `_` to
+  it:
 
-  ```powershell
-  $env:_ = "$env:APPDATA\npm\node_modules\@railway\cli\bin\railway.exe"
+  ```bash
+  "$APPDATA/npm/node_modules/@railway/cli/bin/railway.exe" config plan
   ```
-
-`railway config plan` should report **0 to add, 0 to destroy** — anything else
-means the file has drifted from the live project. Once `apply` has run,
-`relay/railway.json` can be deleted; until then it is what actually configures
-the deploy, so both files are kept in sync.
 
 The `railway` npm package in the repo root is only the authoring SDK for that
 file — it is not part of the relay or of the website.
