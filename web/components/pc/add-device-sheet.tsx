@@ -7,18 +7,8 @@ import { Sheet } from "@/components/sheet";
 import { pairingLink } from "@/lib/orbit";
 
 type Invite = { code: string; expiresIn: number };
+type Method = "qr" | "manual";
 
-/**
- * Adds another phone, tablet or laptop without anyone reading a code off the PC.
- *
- * The PC mints a single-use invite code that expires in five minutes; the QR
- * code points at /connect with that code in the fragment, so scanning it pairs
- * the new device with a token of its own — revocable on its own later.
- *
- * Older agents don't know the invite command. Those fall back to a link carrying
- * this device's own pairing, which works everywhere but shares one token, so the
- * copy says what that means.
- */
 export function AddDeviceSheet({
   open,
   onClose,
@@ -36,19 +26,20 @@ export function AddDeviceSheet({
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [shared, setShared] = useState(false);
   const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"link" | "id" | "pin" | null>(null);
+  const [method, setMethod] = useState<Method>("qr");
 
   const request = useCallback(async () => {
     setError("");
     setInvite(null);
     setShared(false);
+    setCopied(null);
     try {
       const data = await call<Invite>("device.invite");
       setInvite(data);
       setSecondsLeft(data.expiresIn);
     } catch {
-      // Either the PC is offline, or its agent predates invite codes. The shared
-      // link still gets the new device in.
+      // Older agents fall back to a shared pairing link.
       setShared(true);
     }
   }, [call]);
@@ -57,6 +48,7 @@ export function AddDeviceSheet({
     if (!open) return;
     // request() only writes state once the PC has answered.
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMethod("qr");
     request();
   }, [open, request]);
 
@@ -67,22 +59,33 @@ export function AddDeviceSheet({
   }, [invite, secondsLeft]);
 
   const expired = Boolean(invite) && secondsLeft <= 0;
-
   const link = invite
     ? `${location.origin}/connect#d=${encodeURIComponent(deviceId)}&p=${invite.code}`
     : shared
       ? pairingLink({ deviceId, token })
       : "";
 
-  async function copy() {
+  async function copy(value: string, kind: "link" | "id" | "pin") {
     try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+      await navigator.clipboard.writeText(value);
+      setCopied(kind);
+      setTimeout(() => setCopied(null), 1800);
     } catch {
-      setError("Couldn't copy. Select the link and copy it by hand.");
+      setError("Couldn't copy. Please select and copy the value manually.");
     }
   }
+
+  const copyButton = (kind: "id" | "pin", value: string) => (
+    <button
+      type="button"
+      onClick={() => copy(value, kind)}
+      className="btn btn-quiet shrink-0"
+      aria-label={`Copy ${kind === "id" ? "Device ID" : "PIN"}`}
+    >
+      {copied === kind ? <Check className="size-[17px]" /> : <Copy className="size-[17px]" />}
+      {copied === kind ? "Copied" : "Copy"}
+    </button>
+  );
 
   return (
     <Sheet open={open} onClose={onClose} title="Add a device">
@@ -92,40 +95,102 @@ export function AddDeviceSheet({
         </div>
       ) : (
         <div>
-          <p className="text-[15px]" style={{ color: "var(--fg-secondary)" }}>
-            {shared
-              ? "Open this link on the other device. It joins using this device's access, so forgetting this PC here signs both out."
-              : "Point the other device's camera at this code. It pairs itself — there is nothing to type."}
-          </p>
-
-          <div className="mt-5 flex justify-center">
-            <div
-              className="rounded-[18px] p-3"
-              style={{
-                background: "#ffffff",
-                boxShadow: "var(--shadow-card)",
-                opacity: expired ? 0.25 : 1,
-                transition: "opacity 0.25s ease",
-              }}
-            >
-              <Qr value={link} className="size-[212px]" label="Pairing code" />
-            </div>
-          </div>
-
           {invite && (
-            <div className="mt-5 text-center">
-              <p
-                className="tabular text-[28px] font-semibold tracking-[0.18em]"
-                style={{ color: expired ? "var(--fg-tertiary)" : "var(--fg)" }}
+            <div className="mb-5 grid grid-cols-2 gap-2 rounded-[12px] p-1" style={{ background: "var(--bg-secondary)" }}>
+              <button
+                type="button"
+                onClick={() => setMethod("qr")}
+                className="rounded-[9px] px-3 py-2.5 text-[14px] font-medium"
+                style={{
+                  background: method === "qr" ? "var(--bg-elevated)" : "transparent",
+                  color: method === "qr" ? "var(--fg)" : "var(--fg-secondary)",
+                  boxShadow: method === "qr" ? "var(--shadow-card)" : "none",
+                }}
               >
-                {invite.code}
+                Scan QR
+              </button>
+              <button
+                type="button"
+                onClick={() => setMethod("manual")}
+                className="rounded-[9px] px-3 py-2.5 text-[14px] font-medium"
+                style={{
+                  background: method === "manual" ? "var(--bg-elevated)" : "transparent",
+                  color: method === "manual" ? "var(--fg)" : "var(--fg-secondary)",
+                  boxShadow: method === "manual" ? "var(--shadow-card)" : "none",
+                }}
+              >
+                Enter ID + PIN
+              </button>
+            </div>
+          )}
+
+          {shared ? (
+            <>
+              <p className="text-[15px]" style={{ color: "var(--fg-secondary)" }}>
+                Open this link on the other device. This older Orbit agent shares this device's access, so forgetting this PC here signs both devices out.
               </p>
-              <p className="mt-1 text-[13px]" style={{ color: "var(--fg-tertiary)" }}>
+              <div className="mt-5 flex justify-center rounded-[18px] bg-white p-3">
+                <Qr value={link} className="size-[212px]" label="Pairing QR code" />
+              </div>
+              <button onClick={() => copy(link, "link")} className="btn btn-quiet mt-5 w-full">
+                {copied === "link" ? <Check className="size-[18px]" /> : <Copy className="size-[18px]" />}
+                {copied === "link" ? "Copied" : "Copy secure link"}
+              </button>
+            </>
+          ) : method === "qr" ? (
+            <>
+              <p className="text-[15px]" style={{ color: "var(--fg-secondary)" }}>
+                New user: open the camera on their phone and scan this QR code.
+              </p>
+              <div className="mt-5 flex justify-center">
+                <div
+                  className="rounded-[18px] bg-white p-3"
+                  style={{
+                    boxShadow: "var(--shadow-card)",
+                    opacity: expired ? 0.25 : 1,
+                    transition: "opacity 0.25s ease",
+                  }}
+                >
+                  <Qr value={link} className="size-[212px]" label="Pairing QR code" />
+                </div>
+              </div>
+              <p className="mt-3 text-center text-[13px]" style={{ color: "var(--fg-tertiary)" }}>
                 {expired
                   ? "This code has expired."
-                  : `Expires in ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")} · use it with Device ID ${deviceId}`}
+                  : `Temporary code expires in ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`}
               </p>
-            </div>
+              <button onClick={() => copy(link, "link")} disabled={expired} className="btn btn-quiet mt-4 w-full disabled:opacity-40">
+                {copied === "link" ? <Check className="size-[18px]" /> : <Copy className="size-[18px]" />}
+                {copied === "link" ? "Copied" : "Copy QR link"}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-[15px]" style={{ color: "var(--fg-secondary)" }}>
+                On the new phone or laptop, open Orbit and choose manual connection. Enter these two values:
+              </p>
+              <div className="mt-5 space-y-3">
+                <div className="rounded-[13px] border p-3" style={{ borderColor: "var(--separator)" }}>
+                  <p className="mb-2 text-[12px] font-medium uppercase tracking-wide" style={{ color: "var(--fg-tertiary)" }}>Device ID</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="tabular min-w-0 break-all text-[19px] font-semibold">{deviceId}</span>
+                    {copyButton("id", deviceId)}
+                  </div>
+                </div>
+                <div className="rounded-[13px] border p-3" style={{ borderColor: "var(--separator)" }}>
+                  <p className="mb-2 text-[12px] font-medium uppercase tracking-wide" style={{ color: "var(--fg-tertiary)" }}>Temporary PIN</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="tabular text-[25px] font-semibold tracking-[0.2em]">{invite?.code}</span>
+                    {copyButton("pin", invite?.code ?? "")}
+                  </div>
+                </div>
+              </div>
+              <p className="mt-3 text-[13px]" style={{ color: "var(--fg-tertiary)" }}>
+                {expired
+                  ? "This PIN has expired. Generate a new one to connect."
+                  : `PIN expires in ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}. It can be used once.`}
+              </p>
+            </>
           )}
 
           {error && (
@@ -134,22 +199,14 @@ export function AddDeviceSheet({
             </p>
           )}
 
-          <div className="mt-5 flex gap-2.5">
-            {expired ? (
-              <button onClick={request} className="btn btn-primary flex-1">
-                New code
-              </button>
-            ) : (
-              <button onClick={copy} className="btn btn-quiet flex-1">
-                {copied ? <Check className="size-[18px]" /> : <Copy className="size-[18px]" />}
-                {copied ? "Copied" : "Copy link"}
-              </button>
-            )}
-          </div>
+          {expired && (
+            <button onClick={request} className="btn btn-primary mt-5 w-full">
+              Generate new PIN
+            </button>
+          )}
 
-          <p className="mt-4 text-[12.5px] leading-relaxed" style={{ color: "var(--fg-tertiary)" }}>
-            Anyone who scans this can control this PC until you forget it, so don&apos;t
-            share it where others can see.
+          <p className="mt-5 text-[12.5px] leading-relaxed" style={{ color: "var(--fg-tertiary)" }}>
+            Only share these pairing details with someone you trust. They will be able to control this PC after pairing.
           </p>
         </div>
       )}
