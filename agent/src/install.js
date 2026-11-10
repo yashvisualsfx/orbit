@@ -254,8 +254,12 @@ function ensureInstalled() {
       } catch (err) {
         // If another Orbit process won the race and locked the destination,
         // keep using the existing installation when it is still available.
-        if (err.code === 'EBUSY' && fs.existsSync(INSTALLED_EXE) && isRunning()) {
-          log.warn('Orbit became active during update; keeping the existing installation');
+        if (err.code === 'EBUSY' && fs.existsSync(INSTALLED_EXE)) {
+          // A running Windows executable can be locked even when its PID file
+          // is stale or another process has just started it. Keep the working
+          // installed copy and continue opening setup; never surface EBUSY to
+          // a first-time user as a fatal installer error.
+          log.warn('installed Orbit is locked; keeping the existing executable for this launch');
         } else {
           log.error('could not copy Orbit into place:', err.message);
           return { packaged: true, installed: false, exe: SELF_EXE, error: err.message };
