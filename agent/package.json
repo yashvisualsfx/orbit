@@ -17,7 +17,8 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@yao-pkg/pkg": "^6.22.0"
+    "@yao-pkg/pkg": "^6.22.0",
+    "resedit": "^3.1.0"
   },
   "bin": "src/index.js",
   "pkg": {
