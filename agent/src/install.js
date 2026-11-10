@@ -241,29 +241,26 @@ function ensureInstalled() {
   let copied = false;
 
   if (!inPlace && !sameFile(SELF_EXE, INSTALLED_EXE)) {
-    // Never overwrite an executable while the installed agent is running.
-    // Windows locks running .exe files, which can otherwise produce EBUSY.
-    // Reuse the live installation now; the new binary can be installed after
-    // Orbit has been stopped, rather than interrupting the active connection.
+    // Stop the previous background copy before replacing its executable.
+    // This releases Windows' file lock and avoids the EBUSY self-update error.
     if (isRunning()) {
-      log.warn('installed Orbit is already running; deferring executable update to avoid EBUSY');
-    } else {
-      try {
-        fs.copyFileSync(SELF_EXE, INSTALLED_EXE);
-        copied = true;
-      } catch (err) {
-        // If another Orbit process won the race and locked the destination,
-        // keep using the existing installation when it is still available.
-        if (err.code === 'EBUSY' && fs.existsSync(INSTALLED_EXE)) {
-          // A running Windows executable can be locked even when its PID file
-          // is stale or another process has just started it. Keep the working
-          // installed copy and continue opening setup; never surface EBUSY to
-          // a first-time user as a fatal installer error.
-          log.warn('installed Orbit is locked; keeping the existing executable for this launch');
-        } else {
-          log.error('could not copy Orbit into place:', err.message);
-          return { packaged: true, installed: false, exe: SELF_EXE, error: err.message };
-        }
+      log('stopping the previous Orbit agent before updating');
+      run('schtasks', ['/End', '/TN', TASK_NAME]);
+      stopRunning();
+    }
+
+    try {
+      fs.copyFileSync(SELF_EXE, INSTALLED_EXE);
+      copied = true;
+    } catch (err) {
+      // Antivirus scanners or a concurrent launch can briefly hold the file.
+      // If a working installed copy exists, keep it and continue setup instead
+      // of showing an EBUSY error to the user.
+      if (err.code === 'EBUSY' && fs.existsSync(INSTALLED_EXE)) {
+        log.warn('installed Orbit is temporarily locked; keeping the existing executable');
+      } else {
+        log.error('could not copy Orbit into place:', err.message);
+        return { packaged: true, installed: false, exe: SELF_EXE, error: err.message };
       }
     }
   }
