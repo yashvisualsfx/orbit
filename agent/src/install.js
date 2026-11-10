@@ -241,14 +241,26 @@ function ensureInstalled() {
   let copied = false;
 
   if (!inPlace && !sameFile(SELF_EXE, INSTALLED_EXE)) {
-    // The installed copy may be the running agent; stop it before overwriting.
-    if (isRunning()) stopRunning();
-    try {
-      fs.copyFileSync(SELF_EXE, INSTALLED_EXE);
-      copied = true;
-    } catch (err) {
-      log.error('could not copy Orbit into place:', err.message);
-      return { packaged: true, installed: false, exe: SELF_EXE, error: err.message };
+    // Never overwrite an executable while the installed agent is running.
+    // Windows locks running .exe files, which can otherwise produce EBUSY.
+    // Reuse the live installation now; the new binary can be installed after
+    // Orbit has been stopped, rather than interrupting the active connection.
+    if (isRunning()) {
+      log.warn('installed Orbit is already running; deferring executable update to avoid EBUSY');
+    } else {
+      try {
+        fs.copyFileSync(SELF_EXE, INSTALLED_EXE);
+        copied = true;
+      } catch (err) {
+        // If another Orbit process won the race and locked the destination,
+        // keep using the existing installation when it is still available.
+        if (err.code === 'EBUSY' && fs.existsSync(INSTALLED_EXE) && isRunning()) {
+          log.warn('Orbit became active during update; keeping the existing installation');
+        } else {
+          log.error('could not copy Orbit into place:', err.message);
+          return { packaged: true, installed: false, exe: SELF_EXE, error: err.message };
+        }
+      }
     }
   }
 
