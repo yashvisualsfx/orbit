@@ -2,20 +2,20 @@ import Link from "next/link";
 import { OrbitMark } from "./icons";
 import { ThemeToggle } from "./theme-toggle";
 
-/** Clear, comfortable navigation with a little more room for the Orbit brand. */
+/** Clear, comfortable navigation with a prominent Orbit brand. */
 export function SiteNav() {
   return (
     <header
       className="sticky top-0 z-50 border-b backdrop-blur-xl backdrop-saturate-150"
       style={{ background: "var(--nav-bg)", borderColor: "var(--separator-soft)" }}
     >
-      <nav className="mx-auto flex h-16 max-w-[1080px] items-center justify-between gap-4 px-5 sm:px-6">
-        <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="Orbit home">
-          <OrbitMark className="size-7" />
-          <span className="text-[19px] font-bold tracking-[-0.025em]">Orbit</span>
+      <nav className="mx-auto flex h-[76px] max-w-[1080px] items-center justify-between gap-4 px-5 sm:h-20 sm:px-6">
+        <Link href="/" className="flex shrink-0 items-center gap-3" aria-label="Orbit home">
+          <OrbitMark className="size-8 sm:size-9" />
+          <span className="text-[21px] font-bold tracking-[-0.03em] sm:text-[22px]">Orbit</span>
         </Link>
 
-        <div className="flex items-center gap-2.5 text-[14px] font-medium sm:gap-6">
+        <div className="flex items-center gap-3 text-[15px] font-semibold sm:gap-7 sm:text-[15px]">
           <a href="#how" className="hidden transition-opacity hover:opacity-60 sm:inline">
             How it works
           </a>
@@ -28,9 +28,11 @@ export function SiteNav() {
           <a
             href="mailto:godoffserver@gmail.com?subject=Orbit%20Support"
             aria-label="Email Orbit support"
-            className="inline-flex items-center gap-1.5 transition-opacity hover:opacity-60"
+            title="Email Orbit support"
+            className="inline-flex size-10 items-center justify-center rounded-full border transition-colors hover:bg-[var(--bg-elevated)] sm:h-auto sm:w-auto sm:gap-2 sm:rounded-none sm:border-0 sm:bg-transparent"
+            style={{ borderColor: "var(--separator-soft)" }}
           >
-            <svg viewBox="0 0 24 24" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg viewBox="0 0 24 24" className="size-[19px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <rect x="3" y="5" width="18" height="14" rx="2.5" />
               <path d="m4 7 8 6 8-6" />
             </svg>
@@ -39,7 +41,7 @@ export function SiteNav() {
           <ThemeToggle />
           <Link
             href="/pc"
-            className="rounded-full px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.03] active:scale-[0.98]"
+            className="rounded-full px-4 py-2.5 text-[14px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.03] active:scale-[0.98] sm:px-5"
             style={{ background: "var(--accent)" }}
           >
             Open Orbit
