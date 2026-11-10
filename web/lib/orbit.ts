@@ -14,6 +14,20 @@ export const RELAY =
 /** The relay's HTTP origin, derived from its WebSocket URL. */
 export const RELAY_HTTP = RELAY.replace(/^ws/, "http");
 
+const HEARTBEAT_MS = 25000;
+const SILENCE_LIMIT_MS = 70000;
+
+/**
+ * The socket URL for one PC.
+ *
+ * The device id is in the query string, not only in the attach message that
+ * follows, because the relay routes the connection to the object that owns that
+ * PC before it can read anything the browser sends.
+ */
+function clientUrl(deviceId: string) {
+  return `${RELAY}/client?d=${encodeURIComponent(deviceId)}`;
+}
+
 const STORAGE_DEVICE = "orbit.deviceId";
 const STORAGE_TOKEN = "orbit.token";
 const PAIR_COOKIE = "orbit.pair";
@@ -309,19 +323,40 @@ export function useOrbit(deviceId: string, token: string) {
     closed.current = false;
     const inflight = pending.current;
     let timer: ReturnType<typeof setTimeout>;
+    let beat: ReturnType<typeof setInterval>;
+    let heard = Date.now();
 
     const open = () => {
       if (closed.current) return;
 
-      const ws = new WebSocket(`${RELAY}/client`);
+      const ws = new WebSocket(clientUrl(deviceId));
       wsRef.current = ws;
 
       ws.onopen = () => {
         retry.current = 1000;
         ws.send(JSON.stringify({ t: "client.attach", deviceId }));
+
+        /*
+         * The browser is the side that heartbeats. It keeps the socket alive
+         * through proxy idle timers, and it notices a connection that died
+         * without a close frame - which is what a phone coming out of a pocket
+         * usually has. The relay answers this exact frame at the edge.
+         */
+        heard = Date.now();
+        clearInterval(beat);
+        beat = setInterval(() => {
+          if (ws.readyState !== WebSocket.OPEN) return;
+          if (Date.now() - heard > SILENCE_LIMIT_MS) {
+            ws.close();
+            return;
+          }
+          ws.send(JSON.stringify({ t: "ping" }));
+        }, HEARTBEAT_MS);
       };
 
       ws.onmessage = (ev) => {
+        heard = Date.now();
+
         let msg: Record<string, unknown>;
         try {
           msg = JSON.parse(ev.data as string);
@@ -329,7 +364,9 @@ export function useOrbit(deviceId: string, token: string) {
           return;
         }
 
-        // Keeps the browser's socket alive through proxy idle timers.
+        if (msg.t === "pong") return;
+
+        // Older relays heartbeat the other way around.
         if (msg.t === "ping") {
           ws.send(JSON.stringify({ t: "pong" }));
           return;
@@ -357,6 +394,7 @@ export function useOrbit(deviceId: string, token: string) {
       };
 
       ws.onclose = () => {
+        clearInterval(beat);
         if (closed.current) return;
         setSocketStatus("connecting");
         timer = setTimeout(open, retry.current);
@@ -400,6 +438,7 @@ export function useOrbit(deviceId: string, token: string) {
       window.removeEventListener("online", wake);
       window.removeEventListener("pageshow", wake);
       clearTimeout(timer);
+      clearInterval(beat);
       wsRef.current?.close();
       for (const slot of inflight.values()) {
         clearTimeout(slot.timer);
@@ -444,7 +483,7 @@ export async function pairWithDevice(
   label: string,
 ): Promise<{ token: string; device: DeviceInfo }> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(`${RELAY}/client`);
+    const ws = new WebSocket(clientUrl(deviceId));
     const fail = (m: string) => {
       try {
         ws.close();

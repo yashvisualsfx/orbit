@@ -64,6 +64,28 @@ class Commands {
     }
   }
 
+  /**
+   * Identifies the current icon pack without reading it.
+   *
+   * The agent sends this when it connects, so a relay that already holds this
+   * exact pack can say "do not bother" - otherwise every reconnect, and a PC
+   * that sleeps reconnects often, would re-upload a few megabytes of icons.
+   */
+  iconSignature() {
+    const parts = [];
+    for (const app of this.appIndex.values()) {
+      if (!app.icon) continue;
+      try {
+        const { size } = fs.statSync(path.join(config.ICON_DIR, app.icon));
+        parts.push(`${app.id}:${app.icon}:${size}`);
+      } catch { /* icon disappeared between scans */ }
+    }
+    if (!parts.length) return '';
+
+    parts.sort();
+    return crypto.createHash('sha256').update(parts.join('|')).digest('hex').slice(0, 16);
+  }
+
   /** Every scanned icon as base64, for the relay to serve over HTTP. */
   iconPack() {
     const pack = {};

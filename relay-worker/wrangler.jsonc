@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "orbit-relay",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-01",
+  "observability": { "enabled": true },
+
+  // One Durable Object per PC: it owns that machine's agent socket, the
+  // browsers attached to it, and its cached icons. Idle devices cost nothing
+  // because hibernation lets the object be evicted while its sockets stay open.
+  "durable_objects": {
+    "bindings": [{ "name": "DEVICE", "class_name": "DeviceRelay" }]
+  },
+  // SQLite-backed classes are the only kind available on the free plan.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DeviceRelay"] }]
+}

@@ -32,6 +32,14 @@ const { Commands } = require('./commands');
 
 const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 20000;
+const HEARTBEAT_MS = 25000;
+const SILENCE_LIMIT_MS = 70000;
+/*
+ * Icons are sent in chunks small enough for the strictest relay on the path:
+ * Cloudflare caps a WebSocket message at 1 MiB, so the budget leaves room for
+ * JSON and base64 overhead on top of the bytes counted here.
+ */
+const ICON_CHUNK_BYTES = 500 * 1024;
 const PIN_ATTEMPT_LIMIT = 8;
 const PIN_LOCKOUT_MS = 5 * 60 * 1000;
 
@@ -45,6 +53,8 @@ let commands = null;
 let ws = null;
 let reconnectDelay = RECONNECT_MIN_MS;
 let reconnectTimer = null;
+let heartbeatTimer = null;
+let lastHeard = 0;
 let stopping = false;
 let pinFailures = { count: 0, until: 0 };
 
@@ -88,13 +98,17 @@ function tryPair(pairArgs) {
 function connect() {
   if (stopping) return;
 
-  const url = `${cfg.relay.replace(/\/$/, '')}/agent`;
+  // The device id travels in the URL as well as in the hello below: the relay
+  // has to route this socket to the object that owns this PC before it has read
+  // a single frame from it.
+  const url = `${cfg.relay.replace(/\/$/, '')}/agent?d=${encodeURIComponent(cfg.deviceId)}`;
   log(`connecting to ${url} ...`);
 
   ws = new WebSocket(url, { handshakeTimeout: 15000 });
 
   ws.on('open', () => {
     reconnectDelay = RECONNECT_MIN_MS;
+    startHeartbeat();
     ws.send(JSON.stringify({
       t: 'agent.hello',
       deviceId: cfg.deviceId,
@@ -102,10 +116,14 @@ function connect() {
       name: cfg.name,
       platform: commands.deviceInfo().platform,
       version: commands.deviceInfo().agentVersion,
+      // Lets a relay that already holds this icon pack skip the re-send.
+      iconSig: commands.iconSignature(),
     }));
   });
 
   ws.on('message', async (raw) => {
+    lastHeard = Date.now();
+
     let msg;
     try {
       msg = JSON.parse(raw);
@@ -120,9 +138,14 @@ function connect() {
       return;
     }
 
+    if (msg.t === 'pong') return;
+
     if (msg.t === 'agent.ready') {
       log(`online as ${cfg.deviceId} · ${commands.appCount} apps`);
-      sendIcons();
+      // A relay that already has this pack says so; one that says nothing is
+      // an older relay, which means send them.
+      if (msg.needIcons === false) log('relay already has these icons');
+      else sendIcons();
       return;
     }
 
@@ -132,6 +155,7 @@ function connect() {
   });
 
   ws.on('close', (code, reason) => {
+    stopHeartbeat();
     if (stopping) return;
     log(`disconnected (${code}${reason ? ' ' + reason : ''}), retrying in ${Math.round(reconnectDelay / 1000)}s`);
     scheduleReconnect();
@@ -150,19 +174,73 @@ function scheduleReconnect() {
   reconnectDelay = Math.min(RECONNECT_MAX_MS, reconnectDelay * 2) * (0.85 + Math.random() * 0.3);
 }
 
+/*
+ * Keeps the connection alive and notices a dead one.
+ *
+ * The heartbeat is an ordinary JSON message rather than a WebSocket ping frame
+ * because platform proxies drop control frames without closing the connection.
+ * The agent is the one sending it: a relay built on hibernating Durable Objects
+ * has no process of its own to run a timer in, and answering this exact frame
+ * is something the edge can do without waking the object at all.
+ */
+function startHeartbeat() {
+  stopHeartbeat();
+  lastHeard = Date.now();
+
+  heartbeatTimer = setInterval(() => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+    if (Date.now() - lastHeard > SILENCE_LIMIT_MS) {
+      log.warn('relay went quiet; reconnecting');
+      try {
+        ws.terminate();
+      } catch {
+        /* already gone; the close handler reconnects */
+      }
+      return;
+    }
+
+    send({ t: 'ping' });
+  }, HEARTBEAT_MS);
+
+  if (heartbeatTimer.unref) heartbeatTimer.unref();
+}
+
+function stopHeartbeat() {
+  clearInterval(heartbeatTimer);
+  heartbeatTimer = null;
+}
+
 function sendIcons() {
   const pack = commands.iconPack();
   const ids = Object.keys(pack);
   if (!ids.length) return;
 
-  // Chunked so a large library never trips the relay's payload limit.
-  const CHUNK = 40;
-  for (let i = 0; i < ids.length; i += CHUNK) {
-    const slice = {};
-    for (const id of ids.slice(i, i + CHUNK)) slice[id] = pack[id];
-    send({ t: 'agent.icons', icons: slice });
+  const sig = commands.iconSignature();
+  let chunk = {};
+  let bytes = 0;
+  let first = true;
+  let sent = 0;
+
+  const flush = (done) => {
+    if (!Object.keys(chunk).length && !done) return;
+    send({ t: 'agent.icons', icons: chunk, first, done, sig });
+    first = false;
+    chunk = {};
+    bytes = 0;
+  };
+
+  for (const id of ids) {
+    chunk[id] = pack[id];
+    bytes += pack[id].length;
+    sent += 1;
+    if (bytes >= ICON_CHUNK_BYTES) flush(false);
   }
-  log(`sent ${ids.length} icons`);
+  // The last message carries `done`, which is what lets the relay record the
+  // signature: an interrupted transfer is then re-sent rather than trusted.
+  flush(true);
+
+  log(`sent ${sent} icons`);
 }
 
 function send(msg) {
