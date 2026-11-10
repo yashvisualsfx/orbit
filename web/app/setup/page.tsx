@@ -29,7 +29,7 @@ export default function SetupPage() {
 
     const invite = new URLSearchParams({ d: deviceId, p: pin, n: name });
     const link = `${window.location.origin}/connect#${invite.toString()}`;
-    setPairing({ deviceId, pin, name, link });
+    // The URL fragment has been consumed; keep pairing details only in page state.\n    // eslint-disable-next-line react-hooks/set-state-in-effect\n    setPairing({ deviceId, pin, name, link });
   }, []);
 
   async function copy(value: string, kind: "id" | "pin") {
