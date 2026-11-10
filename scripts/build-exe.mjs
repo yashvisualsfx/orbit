@@ -30,7 +30,7 @@ const EXE = path.join(OUT_DIR, 'Orbit.exe');
 const PUBLIC_EXE = path.join(ROOT, 'web', 'public', 'Orbit.exe');
 
 const DEFAULTS = {
-  relay: 'wss://orbit-relay-production.up.railway.app',
+  relay: 'wss://orbit-sjdy.onrender.com',
   web: 'https://orbit-rho-ecru.vercel.app',
 };
 
