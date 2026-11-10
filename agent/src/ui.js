@@ -8,21 +8,36 @@ const { spawn, spawnSync } = require('child_process');
  * box. Everything else goes to the log file.
  */
 
+const quote = (s) => `'${String(s).replace(/'/g, "''")}'`;
+
 /** Opens a URL in the user's default browser. */
 function openUrl(url) {
-  // Pass the URL directly to Explorer/the Windows shell. Avoid cmd.exe parsing:
-  // pairing URLs contain query separators (&) and a fragment (#) that must survive.
-  const child = spawn('explorer.exe', [url], {
-    detached: true,
-    stdio: 'ignore',
-    windowsHide: true,
-  });
-  child.unref();
+  // Ask the Windows shell to resolve the URL through the user's default browser.
+  // PowerShell keeps the pairing fragment (& and #) intact without cmd.exe parsing.
+  const result = spawnSync(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      `Start-Process -FilePath ${quote(url)}`,
+    ],
+    { windowsHide: true, stdio: 'ignore', timeout: 10000 }
+  );
+
+  // Explorer is a fallback for machines where PowerShell cannot start.
+  if (result.error || result.status !== 0) {
+    const child = spawn('explorer.exe', [url], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+    child.unref();
+  }
 }
 
 /** Shows a modal message box and waits for it to be dismissed. */
 function message(text, title = 'Orbit') {
-  const quote = (s) => `'${String(s).replace(/'/g, "''")}'`;
   spawnSync(
     'powershell',
     [
