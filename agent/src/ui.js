@@ -10,9 +10,9 @@ const { spawn, spawnSync } = require('child_process');
 
 /** Opens a URL in the user's default browser. */
 function openUrl(url) {
-  // The empty "" is the window title start() expects; without it a quoted URL
-  // is treated as the title and nothing opens.
-  const child = spawn('cmd', ['/c', 'start', '', url.replace(/&/g, '^&')], {
+  // Pass the URL directly to Explorer/the Windows shell. Avoid cmd.exe parsing:
+  // pairing URLs contain query separators (&) and a fragment (#) that must survive.
+  const child = spawn('explorer.exe', [url], {
     detached: true,
     stdio: 'ignore',
     windowsHide: true,
