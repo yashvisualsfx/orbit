@@ -15,7 +15,7 @@ export function SiteNav() {
           <span className="text-[19px] font-bold tracking-[-0.025em]">Orbit</span>
         </Link>
 
-        <div className="flex items-center gap-3 text-[14px] font-medium sm:gap-6">
+        <div className="flex items-center gap-2.5 text-[14px] font-medium sm:gap-6">
           <a href="#how" className="hidden transition-opacity hover:opacity-60 sm:inline">
             How it works
           </a>
@@ -27,9 +27,14 @@ export function SiteNav() {
           </a>
           <a
             href="mailto:godoffserver@gmail.com?subject=Orbit%20Support"
-            className="hidden transition-opacity hover:opacity-60 sm:inline"
+            aria-label="Email Orbit support"
+            className="inline-flex items-center gap-1.5 transition-opacity hover:opacity-60"
           >
-            Support
+            <svg viewBox="0 0 24 24" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="14" rx="2.5" />
+              <path d="m4 7 8 6 8-6" />
+            </svg>
+            <span className="hidden sm:inline">Support</span>
           </a>
           <ThemeToggle />
           <Link
