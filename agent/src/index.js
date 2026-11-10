@@ -66,7 +66,7 @@ let pinFailures = { count: 0, until: 0 };
  */
 function pairUrl() {
   const frag = new URLSearchParams({ d: cfg.deviceId, p: cfg.pin, n: cfg.name });
-  return `${config.WEB_URL.replace(/\/$/, '')}/connect#${frag.toString()}`;
+  return `${config.WEB_URL.replace(/\/$/, '')}/setup#${frag.toString()}`;
 }
 
 function tryPair(pairArgs) {
