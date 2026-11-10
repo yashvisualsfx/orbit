@@ -21,6 +21,7 @@
  */
 
 const WebSocket = require('ws');
+const crypto = require('crypto');
 
 const config = require('./config');
 const install = require('./install');
@@ -349,6 +350,11 @@ function runLauncher() {
       + `Details: ${LOG_FILE}`
     );
   }
+
+  // Rotate the setup PIN whenever the downloaded installer is opened.
+  // Existing paired browsers keep their own tokens; only new pairings use it.
+  cfg.pin = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+  config.save(cfg);
 
   if (!install.isRunning()) install.startBackground(state.exe);
 
