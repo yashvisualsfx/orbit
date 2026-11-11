@@ -10,6 +10,7 @@ const { log } = require('./log');
 
 const TASK_NAME = 'Orbit Agent';
 const RUN_KEY = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run';
+const PROTOCOL_KEY = 'HKCU\\Software\\Classes\\orbit';
 const PID_FILE = path.join(DATA_DIR, 'agent.pid');
 const SHORTCUT = path.join(
   process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'),
@@ -184,7 +185,19 @@ function enableAutostart(exe) {
   return null;
 }
 
+function registerProtocol(exe) {
+  const command = `\"${exe}\" --show \"%1\"`;
+  run('reg', ['add', PROTOCOL_KEY, '/ve', '/t', 'REG_SZ', '/d', 'URL:Orbit Protocol', '/f']);
+  run('reg', ['add', PROTOCOL_KEY, '/v', 'URL Protocol', '/t', 'REG_SZ', '/d', '', '/f']);
+  run('reg', ['add', `${PROTOCOL_KEY}\\shell\\open\\command`, '/ve', '/t', 'REG_SZ', '/d', command, '/f']);
+}
+
+function unregisterProtocol() {
+  run('reg', ['delete', PROTOCOL_KEY, '/f']);
+}
+
 function disableAutostart() {
+  unregisterProtocol();
   run('schtasks', ['/End', '/TN', TASK_NAME]);
   run('schtasks', ['/Delete', '/TN', TASK_NAME, '/F']);
   run('reg', ['delete', RUN_KEY, '/v', 'Orbit', '/f']);
@@ -267,6 +280,7 @@ function ensureInstalled() {
 
   const autostart = copied || !hasTask() ? enableAutostart(INSTALLED_EXE) : 'task';
   createShortcut(INSTALLED_EXE);
+  registerProtocol(INSTALLED_EXE);
 
   return { packaged: true, installed: true, copied, autostart, exe: INSTALLED_EXE };
 }
