@@ -93,7 +93,7 @@ export default function SetupPage() {
             <section className="inset-group mt-9 p-6 text-center">
               <h2 className="text-[18px] font-semibold">Pairing details unavailable</h2>
               <p className="lede mt-2 text-[15px]">
-                Close this tab and open Orbit.exe again. Keep the app running while pairing.
+                Return to the signed-in Orbit website, choose Connect a PC, and keep the Windows agent running.
               </p>
             </section>
           ) : (
