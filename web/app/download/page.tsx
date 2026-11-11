@@ -11,6 +11,9 @@ export default function DownloadPage() {
   const supabase = getSupabaseBrowserClient();
   const [user, setUser] = useState<User | null>(null);
   const [checking, setChecking] = useState(true);
+  const [downloadUrl, setDownloadUrl] = useState("");
+  const [preparing, setPreparing] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
 
   useEffect(() => {
     if (!supabase) {
@@ -29,6 +32,24 @@ export default function DownloadPage() {
   }, [supabase]);
 
   const onboarded = user?.user_metadata?.orbit_onboarding_completed === true;
+
+  useEffect(() => {
+    if (!supabase || !user || !onboarded) return;
+    let active = true;
+    setPreparing(true);
+    setDownloadError("");
+    supabase.storage.from("orbit-downloads").createSignedUrl("Orbit.exe", 300)
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) throw error;
+        setDownloadUrl(data.signedUrl);
+      })
+      .catch(() => {
+        if (active) setDownloadError("The private installer has not been uploaded to Orbit Storage yet. Please try again after setup is complete.");
+      })
+      .finally(() => { if (active) setPreparing(false); });
+    return () => { active = false; };
+  }, [supabase, user, onboarded]);
 
   return (
     <>
