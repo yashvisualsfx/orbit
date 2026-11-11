@@ -131,8 +131,8 @@ export default function ConnectPage() {
               <p className="lede mx-auto mt-4 max-w-[470px] text-base">Install the lightweight Windows agent. Once it’s running, choose Connect below to reveal a fresh QR code and pairing PIN.</p>
               {error && <p role="alert" className="mt-5 rounded-xl p-3 text-sm" style={{ color: "var(--danger)", background: "color-mix(in srgb, var(--danger) 10%, transparent)" }}>{error}</p>}
               <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                <Link href="/download" className="btn btn-secondary w-full">Download Orbit for Windows</Link>
-                <a href="orbit://connect" className="btn btn-primary w-full">Connect this PC</a>
+                <Link href="/download" className="btn btn-primary w-full">Download Orbit for Windows</Link>
+                <a href="orbit://connect" className="btn btn-secondary w-full">Already installed? Connect</a>
               </div>
               <p className="mt-5 text-xs leading-relaxed" style={{ color: "var(--fg-tertiary)" }}>Already installed? Select Connect this PC and allow your browser to open Orbit. The pairing screen opens only when you request it.</p>
             </>
