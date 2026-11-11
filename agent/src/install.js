@@ -58,8 +58,8 @@ function stopRunning() {
 }
 
 /** Launches the agent detached, so it outlives the process that started it. */
-function startBackground(exe = INSTALLED_EXE) {
-  const child = spawn(exe, ['--silent'], {
+function startBackground(exe = INSTALLED_EXE, args = ['--silent']) {
+  const child = spawn(exe, args, {
     detached: true,
     stdio: 'ignore',
     windowsHide: true,
