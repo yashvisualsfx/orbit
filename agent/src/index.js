@@ -324,11 +324,12 @@ async function runAgent() {
     log.error('could not start the PowerShell worker:', err.message);
   }
 
-  // A fresh PIN is generated only when the background agent actually starts.
-  // The browser launcher can then open pairing repeatedly without desynchronising
-  // its PIN from the long-running agent's in-memory configuration.
-  cfg.pin = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
-  config.save(cfg);
+  // Startup rotates the pairing PIN once. A launcher that prepared the PIN
+  // passes --keep-pin so the process and the page use the same value.
+  if (!has('--keep-pin')) {
+    cfg.pin = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+    config.save(cfg);
+  }
 
   connect();
 }
@@ -357,7 +358,11 @@ function runLauncher() {
     );
   }
 
-  if (!install.isRunning()) install.startBackground(state.exe);
+  if (!install.isRunning()) {
+    cfg.pin = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+    config.save(cfg);
+    install.startBackground(state.exe, ['--silent', '--keep-pin']);
+  }
 
   ui.openUrl(config.WEB_URL);
 }
@@ -395,7 +400,11 @@ async function main() {
       ui.message(`Orbit could not finish setting itself up.\\n\\n${state.error || 'Unknown error'}\\n\\nDetails: ${LOG_FILE}`);
       return;
     }
-    if (!install.isRunning()) install.startBackground(state.exe);
+    if (!install.isRunning()) {
+      cfg.pin = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+      config.save(cfg);
+      install.startBackground(state.exe, ['--silent', '--keep-pin']);
+    }
     ui.openUrl(pairUrl());
     return;
   }
