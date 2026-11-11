@@ -324,14 +324,20 @@ async function runAgent() {
     log.error('could not start the PowerShell worker:', err.message);
   }
 
+  // A fresh PIN is generated only when the background agent actually starts.
+  // The browser launcher can then open pairing repeatedly without desynchronising
+  // its PIN from the long-running agent's in-memory configuration.
+  cfg.pin = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+  config.save(cfg);
+
   connect();
 }
 
 // ---------------------------------------------------------------- launcher
 /**
- * What a double-click does: make sure Orbit is installed and running, then open
- * the pairing page. The page pairs itself from the fragment, so nothing has to
- * be typed — not here, and not on the phone that scans the QR code it shows.
+ * What a double-click does: install/start the background agent and open the
+ * Orbit website. Pairing is deliberately deferred until the signed-in user
+ * chooses Connect a PC and invokes the registered orbit://connect protocol.
  */
 function runLauncher() {
   const state = install.ensureInstalled();
@@ -351,14 +357,9 @@ function runLauncher() {
     );
   }
 
-  // Rotate the setup PIN whenever the downloaded installer is opened.
-  // Existing paired browsers keep their own tokens; only new pairings use it.
-  cfg.pin = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
-  config.save(cfg);
-
   if (!install.isRunning()) install.startBackground(state.exe);
 
-  ui.openUrl(pairUrl());
+  ui.openUrl(config.WEB_URL);
 }
 
 // ------------------------------------------------------------------- start
@@ -389,7 +390,12 @@ async function main() {
   }
 
   if (has('--show')) {
-    if (process.stdout.isTTY) banner();
+    const state = install.ensureInstalled();
+    if (!state.installed) {
+      ui.message(`Orbit could not finish setting itself up.\\n\\n${state.error || 'Unknown error'}\\n\\nDetails: ${LOG_FILE}`);
+      return;
+    }
+    if (!install.isRunning()) install.startBackground(state.exe);
     ui.openUrl(pairUrl());
     return;
   }
