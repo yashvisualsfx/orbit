@@ -18,9 +18,15 @@ const OUT_DIR = path.join(AGENT, 'dist');
 const EXE = path.join(OUT_DIR, 'Orbit.exe');
 const PRIVATE_EXE = path.join(ROOT, 'web', 'private', 'Orbit.exe');
 
+const BUILD_FILE = path.join(AGENT, 'src', 'build.json');
+let stamped = {};
+try { stamped = JSON.parse(fs.readFileSync(BUILD_FILE, 'utf8')); } catch { /* use safe defaults below */ }
+
+// Preserve the relay already stamped into the agent unless an explicit --relay
+// is supplied. This avoids silently moving a working install to another host.
 const DEFAULTS = {
-  relay: 'wss://orbit-sjdy.onrender.com',
-  web: 'https://orbit-rho-ecru.vercel.app',
+  relay: stamped.relay || 'wss://orbit-sjdy.onrender.com',
+  web: stamped.web || 'https://orbit-rho-ecru.vercel.app',
 };
 
 function arg(name, fallback) {
@@ -40,8 +46,7 @@ if (!/^https?:\/\//.test(web)) {
   process.exit(1);
 }
 
-const buildFile = path.join(AGENT, 'src', 'build.json');
-fs.writeFileSync(buildFile, JSON.stringify({ relay, web }, null, 2) + '\n');
+fs.writeFileSync(BUILD_FILE, JSON.stringify({ relay, web }, null, 2) + '\n');
 console.log(`stamped  relay ${relay}`);
 console.log(`stamped  web   ${web}`);
 
