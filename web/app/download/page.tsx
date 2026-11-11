@@ -74,10 +74,11 @@ export default function DownloadPage() {
             </div>
           ) : (
             <div className="mt-8">
-              <a href="/Orbit.exe" className="btn btn-primary">
-                <Download className="size-[18px]" />
-                Download Orbit.exe
+              <a href={downloadUrl || undefined} aria-disabled={!downloadUrl || preparing} className="btn btn-primary" style={{ opacity: !downloadUrl || preparing ? 0.55 : 1, pointerEvents: !downloadUrl || preparing ? "none" : "auto" }}>
+                {preparing ? <Spinner className="size-[18px]" /> : <Download className="size-[18px]" />}
+                {preparing ? "Preparing secure download…" : "Download Orbit.exe"}
               </a>
+              {downloadError && <p role="status" className="mx-auto mt-4 max-w-[440px] rounded-xl p-3 text-xs leading-relaxed" style={{ background: "var(--bg-secondary)", color: "var(--fg-secondary)" }}>{downloadError}</p>}
               <div className="mx-auto mt-6 max-w-[440px] rounded-2xl border p-4 text-left" style={{ borderColor: "var(--separator-soft)", background: "var(--bg-secondary)" }}>
                 <p className="text-sm font-semibold">After downloading</p>
                 <ol className="mt-3 space-y-2 text-sm" style={{ color: "var(--fg-secondary)" }}>
