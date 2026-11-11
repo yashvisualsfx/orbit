@@ -7,7 +7,7 @@ import type { User } from "@supabase/supabase-js";
 import { SiteNav, SiteFooter } from "@/components/site-chrome";
 import { OrbitMark, Spinner } from "@/components/icons";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { clearPairing, readStored, reinforcePairing, useOrbit, usePairing } from "@/lib/orbit";
+import { readStored, reinforcePairing, useOrbit, usePairing } from "@/lib/orbit";
 
 export default function PcPage() {
   const router = useRouter();
@@ -64,7 +64,6 @@ export default function PcPage() {
     if (!supabase) return;
     setSigningOut(true);
     await supabase.auth.signOut();
-    clearPairing();
     router.replace("/login");
   }
 
