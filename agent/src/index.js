@@ -13,9 +13,9 @@
  *
  * Modes:
  *   (no arguments)  install if needed, start the background agent and open the
- *                   pairing page — what a double-click of the exe does
+ *                   Orbit website — what a double-click of the exe does
  *   --silent        be the agent; this is what the logon task runs
- *   --show          open the pairing page again
+ *   --show          open the pairing screen after an explicit user request
  *   --uninstall     remove the startup entry and stop the agent
  *   --scan-only     index installed apps and exit
  */
