@@ -48,7 +48,16 @@ export default function Home() {
             </Rise>
           </div>
 
-          <Rise delay={0.24} className="float-soft mt-14 sm:mt-20">
+          <div className="hero-orbit" aria-hidden="true">
+            <span className="hero-orbit-ring hero-orbit-ring-a" />
+            <span className="hero-orbit-ring hero-orbit-ring-b" />
+            <span className="hero-orbit-ring hero-orbit-ring-c" />
+            <span className="hero-orbit-core" />
+            <span className="hero-orbit-node" />
+            <span className="hero-orbit-label">One secure connection · Anywhere</span>
+          </div>
+
+          <Rise delay={0.24} className="float-soft mt-8 sm:mt-10">
             <PhoneMock />
           </Rise>
         </section>
