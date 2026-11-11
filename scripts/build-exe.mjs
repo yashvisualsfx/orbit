@@ -16,7 +16,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const AGENT = path.join(ROOT, 'agent');
 const OUT_DIR = path.join(AGENT, 'dist');
 const EXE = path.join(OUT_DIR, 'Orbit.exe');
-const PUBLIC_EXE = path.join(ROOT, 'web', 'public', 'Orbit.exe');
+const PRIVATE_EXE = path.join(ROOT, 'web', 'private', 'Orbit.exe');
 
 const DEFAULTS = {
   relay: 'wss://orbit-sjdy.onrender.com',
@@ -182,8 +182,8 @@ try {
   process.exit(1);
 }
 
-fs.mkdirSync(path.dirname(PUBLIC_EXE), { recursive: true });
-fs.copyFileSync(EXE, PUBLIC_EXE);
+fs.mkdirSync(path.dirname(PRIVATE_EXE), { recursive: true });
+fs.copyFileSync(EXE, PRIVATE_EXE);
 
 const bytes = fs.statSync(EXE).size;
 const sha = createHash('sha256').update(fs.readFileSync(EXE)).digest('hex');
@@ -193,5 +193,5 @@ console.log(`  ${EXE}`);
 console.log(`  ${PUBLIC_EXE}`);
 console.log(`  ${(bytes / 1024 / 1024).toFixed(1)} MB   sha256 ${sha.slice(0, 16)}…`);
 console.log('');
-console.log('  Deploy the website so /Orbit.exe serves the new build:');
-console.log('    cd web && vercel --prod --yes');
+console.log('  Upload this file to the private Supabase Storage bucket: orbit-downloads / Orbit.exe');
+console.log('  The signed-in website will issue a short-lived download link.');
