@@ -12,6 +12,7 @@ function todayKey() {
 
 export function ProUpgradeNudge() {
   const [visible, setVisible] = useState(false);
+  const [storageKey, setStorageKey] = useState<string | null>(null);
   const supabase = getSupabaseBrowserClient();
 
   useEffect(() => {
@@ -25,13 +26,16 @@ export function ProUpgradeNudge() {
         metadata?.orbit_selected_plan === "free"
       );
 
-      if (!eligible) {
+      if (!eligible || !user) {
         setVisible(false);
+        setStorageKey(null);
         return;
       }
 
+      const key = `orbit-pro-nudge-${user.id}`;
+      setStorageKey(key);
       try {
-        const dismissedOn = window.localStorage.getItem(`orbit-pro-nudge-${user!.id}`);
+        const dismissedOn = window.localStorage.getItem(key);
         setVisible(dismissedOn !== todayKey());
       } catch {
         setVisible(true);
@@ -48,9 +52,7 @@ export function ProUpgradeNudge() {
 
   function dismiss() {
     try {
-      // One reminder per local calendar day; the prompt can reappear tomorrow.
-      const key = `orbit-pro-nudge-${(window as Window & { __orbitUserId?: string }).__orbitUserId ?? "guest"}`;
-      window.localStorage.setItem(key, todayKey());
+      if (storageKey) window.localStorage.setItem(storageKey, todayKey());
     } catch {
       // The nudge still closes for this render if storage is unavailable.
     }
