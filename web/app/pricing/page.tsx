@@ -40,6 +40,12 @@ const plans = [
       "Extended device activity history",
       "Priority support",
     ],
+    roadmap: [
+      "Smart reconnect and connection recovery",
+      "Device health alerts and status insights",
+      "Saved multi-step workflows",
+      "Detailed remote session timeline",
+    ],
   },
   {
     name: "Business",
@@ -56,6 +62,13 @@ const plans = [
       "Role-based access controls",
       "Centralised device overview",
       "Team activity and audit history",
+    ],
+    roadmap: [
+      "Invite teammates and manage seats",
+      "Granular team roles and permissions",
+      "Bulk device actions and fleet controls",
+      "Shared workflow and quick-action library",
+      "Exportable team activity reports",
     ],
   },
 ];
@@ -110,6 +123,22 @@ export default function PricingPage() {
                         </li>
                       ))}
                     </ul>
+                    {plan.roadmap && (
+                      <div className="mt-6 rounded-2xl border p-4" style={{ borderColor: "var(--separator-soft)", background: "var(--bg-secondary)" }}>
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                          <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "var(--fg-secondary)" }}>On the roadmap</p>
+                          <span className="rounded-full px-2 py-1 text-[10px] font-semibold" style={{ background: "color-mix(in srgb, var(--accent) 12%, var(--bg-elevated))", color: "var(--accent)" }}>Coming soon</span>
+                        </div>
+                        <ul className="space-y-2">
+                          {plan.roadmap.map((feature) => (
+                            <li key={feature} className="flex gap-2 text-[12px] leading-relaxed" style={{ color: "var(--fg-secondary)" }}>
+                              <span style={{ color: "var(--accent)" }}>✦</span>
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     {plan.name === "Free" ? (
                       <Link href="/#get" className="btn btn-secondary mt-8 w-full">Get started free</Link>
                     ) : (
