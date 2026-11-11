@@ -41,7 +41,11 @@ export default function ConnectPage() {
   }, [supabase]);
 
   useEffect(() => {
-    if (!authReady || !user) return;
+    if (!authReady) return;
+    if (!user) {
+      setPhase("ready");
+      return;
+    }
     if (user.user_metadata?.orbit_onboarding_completed !== true) {
       setPhase("ready");
       return;
