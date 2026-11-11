@@ -38,7 +38,7 @@ export default function Home() {
                   Get Orbit for Windows
                 </a>
                 <Link href="/connect" className="btn btn-secondary">
-                  Open Orbit
+                  Connect a PC
                 </Link>
               </div>
 
@@ -125,8 +125,7 @@ export default function Home() {
             <Reveal>
               <h2 className="display-lg text-balance">Set up once. Then never again.</h2>
               <p className="lede mt-5 max-w-[600px]">
-                There is no code to type on the PC and none to type on the phone. The
-                first run does the pairing; every restart after that reconnects on its own.
+                Sign in once, install the agent on Windows, then pair your phone with a QR code. After that, Orbit reconnects automatically whenever your PC is online.
               </p>
             </Reveal>
 
@@ -179,7 +178,7 @@ export default function Home() {
             </p>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <a href="/Orbit.exe" className="btn btn-primary">
+              <a href="/download" className="btn btn-primary">
                 <Download className="size-[18px]" />
                 Download Orbit.exe
               </a>
