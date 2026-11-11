@@ -1,216 +1,162 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion, useReducedMotion } from "motion/react";
-import { AppEntry, readStored, reinforcePairing, useOrbit, usePairing } from "@/lib/orbit";
-import { ToastProvider, useToast } from "@/components/toast";
-import { AppsTab } from "@/components/pc/apps-tab";
-import { WindowsTab } from "@/components/pc/windows-tab";
-import { RemoteTab } from "@/components/pc/remote-tab";
-import { Grid, Display, Refresh, Sliders, Spinner, OrbitMark } from "@/components/icons";
-
-type Tab = "apps" | "windows" | "remote";
+import type { User } from "@supabase/supabase-js";
+import { SiteNav, SiteFooter } from "@/components/site-chrome";
+import { OrbitMark, Spinner } from "@/components/icons";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { clearPairing, readStored, reinforcePairing, useOrbit, usePairing } from "@/lib/orbit";
 
 export default function PcPage() {
-  return (
-    <ToastProvider>
-      <Dashboard />
-    </ToastProvider>
-  );
-}
-
-function Dashboard() {
   const router = useRouter();
-  const toast = useToast();
+  const supabase = getSupabaseBrowserClient();
   const pairing = usePairing();
-  const paired = Boolean(pairing.deviceId && pairing.token);
-  const [tab, setTab] = useState<Tab>("apps");
-  const [apps, setApps] = useState<AppEntry[]>([]);
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [loadedApps, setLoadedApps] = useState(false);
-  const [rescanning, setRescanning] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [clientCount, setClientCount] = useState<number | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
+  const { status, device, call } = useOrbit(pairing.deviceId, pairing.token);
 
   useEffect(() => {
+    if (!supabase) {
+      setAuthReady(true);
+      return;
+    }
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
+      setAuthReady(true);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setAuthReady(true);
+    });
+    return () => data.subscription.unsubscribe();
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!authReady) return;
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+    if (user.user_metadata?.orbit_onboarding_completed !== true) {
+      router.replace("/login");
+      return;
+    }
     const stored = readStored();
     if (!stored.deviceId || !stored.token) {
       router.replace("/connect");
       return;
     }
     reinforcePairing();
-  }, [router]);
-
-  const { status, device, call } = useOrbit(pairing.deviceId, pairing.token);
-
-  const loadApps = useCallback(async () => {
-    try {
-      const data = await call<{ apps: AppEntry[]; favorites: string[] }>("apps.list");
-      setApps(data.apps ?? []);
-      setFavorites(new Set(data.favorites ?? []));
-      setLoadedApps(true);
-    } catch {
-      /* the header already communicates the connection state */
-    }
-  }, [call]);
+  }, [authReady, user, router]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (status === "online") loadApps();
-  }, [status, loadApps]);
+    if (status !== "online") return;
+    call<{ clients: { label: string; pairedAt: string }[] }>("device.clients")
+      .then((data) => setClientCount(data.clients?.length ?? 0))
+      .catch(() => setClientCount(null));
+  }, [status, call]);
 
-  async function rescan() {
-    setRescanning(true);
-    toast("Scanning your PC…");
-    try {
-      await call("apps.rescan");
-      for (let i = 0; i < 40; i++) {
-        await new Promise((r) => setTimeout(r, 1200));
-        const data = await call<{ apps: AppEntry[]; favorites: string[]; scanning: boolean }>("apps.list");
-        if (!data.scanning) {
-          setApps(data.apps ?? []);
-          setFavorites(new Set(data.favorites ?? []));
-          toast(`${data.apps.length} apps found`, { tone: "success" });
-          break;
-        }
-      }
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Rescan failed", { tone: "error" });
-    } finally {
-      setRescanning(false);
-    }
+  async function signOut() {
+    if (!supabase) return;
+    setSigningOut(true);
+    await supabase.auth.signOut();
+    clearPairing();
+    router.replace("/login");
   }
 
-  if (!paired) {
-    return (
-      <main className="grid flex-1 place-items-center" style={{ color: "var(--fg-tertiary)" }}>
-        <Spinner className="size-6" />
-      </main>
-    );
+  if (!authReady || !user || !pairing.deviceId || !pairing.token) {
+    return <main className="grid min-h-screen flex-1 place-items-center"><Spinner className="size-7" /></main>;
   }
 
   const online = status === "online";
+  const plan = String(user.user_metadata?.orbit_selected_plan || "free");
 
   return (
     <>
-      <header
-        className="sticky top-0 z-30 border-b backdrop-blur-xl backdrop-saturate-150"
-        style={{
-          background: "var(--nav-bg)",
-          borderColor: "var(--separator-soft)",
-          paddingTop: "env(safe-area-inset-top, 0px)",
-        }}
-      >
-        <div className="mx-auto max-w-[760px] px-4">
-          <div className="flex h-14 items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <OrbitMark className="size-[22px] shrink-0" />
-              <div className="min-w-0">
-                <p className="truncate text-[15px] font-semibold leading-tight">
-                  {device?.name ?? "Your PC"}
-                </p>
-                <p className="flex items-center gap-1.5 text-[12px] leading-tight" style={{ color: "var(--fg-tertiary)" }}>
-                  <span
-                    className={`size-[6px] shrink-0 rounded-full ${online ? "status-pulse" : ""}`}
-                    style={{
-                      background: online ? "var(--success)" : status === "connecting" ? "var(--fg-tertiary)" : "var(--danger)",
-                      color: online ? "var(--success)" : "var(--danger)",
-                    }}
-                    aria-hidden
-                  />
-                  {online
-                    ? `Online${loadedApps ? ` · ${apps.length} apps` : ""}`
-                    : status === "connecting" ? "Connecting…" : "PC is offline"}
-                </p>
+      <SiteNav />
+      <main className="mx-auto w-full max-w-[1040px] flex-1 px-5 py-10 sm:py-16">
+        <div className="flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <p className="eyebrow">ORBIT CONTROL CENTER</p>
+            <h1 className="display-lg mt-2">Your devices.</h1>
+            <p className="lede mt-3 text-base">A clear view of your PC connection and account security.</p>
+          </div>
+          <button onClick={signOut} disabled={signingOut} className="btn btn-secondary">
+            {signingOut ? "Signing out…" : "Sign out"}
+          </button>
+        </div>
+
+        <section className="glow-card mt-9 overflow-hidden rounded-[28px] p-6 sm:p-9">
+          <div className="flex flex-wrap items-start justify-between gap-5">
+            <div className="flex items-center gap-4">
+              <div className="grid size-14 place-items-center rounded-2xl" style={{ background: "color-mix(in srgb, var(--accent) 13%, var(--bg-secondary))", color: "var(--accent)" }}>
+                <OrbitMark className="size-8" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: "var(--fg-tertiary)" }}>Windows device</p>
+                <h2 className="mt-1 text-2xl font-semibold tracking-tight">{device?.name || "Your PC"}</h2>
+                <p className="mt-1 text-sm" style={{ color: "var(--fg-secondary)" }}>{device?.platform || "Waiting for device details"}</p>
               </div>
             </div>
-
-            <button
-              onClick={rescan}
-              disabled={!online || rescanning}
-              aria-label="Rescan installed apps"
-              className="grid size-9 shrink-0 place-items-center rounded-[10px] border transition-transform active:scale-92 disabled:opacity-40"
-              style={{ background: "var(--bg-elevated)", borderColor: "var(--separator-soft)" }}
-            >
-              <Refresh className={`size-[18px] ${rescanning ? "animate-spin" : ""}`} />
-            </button>
-          </div>
-
-          <div className="pb-3">
-            <div className="segmented w-full">
-              <SegmentButton current={tab} value="apps" onSelect={setTab} icon={<Grid className="size-4" />}>Apps</SegmentButton>
-              <SegmentButton current={tab} value="windows" onSelect={setTab} icon={<Display className="size-4" />}>Windows</SegmentButton>
-              <SegmentButton current={tab} value="remote" onSelect={setTab} icon={<Sliders className="size-4" />}>Remote</SegmentButton>
+            <div className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold" style={{ borderColor: online ? "color-mix(in srgb, var(--success) 35%, var(--separator))" : "var(--separator)", background: online ? "color-mix(in srgb, var(--success) 10%, transparent)" : "var(--bg-secondary)", color: online ? "var(--success)" : "var(--fg-secondary)" }}>
+              <span className={online ? "status-pulse size-2 rounded-full" : "size-2 rounded-full"} style={{ background: online ? "var(--success)" : "var(--fg-tertiary)" }} />
+              {online ? "Connected" : status === "connecting" ? "Connecting…" : "PC offline"}
             </div>
           </div>
+
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <Info label="Device ID" value={pairing.deviceId} />
+            <Info label="Paired browsers" value={clientCount === null ? "—" : String(clientCount)} />
+            <Info label="Agent version" value={device?.agentVersion || "—"} />
+          </div>
+
+          {!online && (
+            <div className="mt-6 rounded-2xl border p-4 text-sm" style={{ borderColor: "var(--separator-soft)", background: "var(--bg-secondary)", color: "var(--fg-secondary)" }}>
+              Keep Orbit running on your Windows PC and check that it has an internet connection. Orbit will retry automatically.
+            </div>
+          )}
+          <div className="mt-7 flex flex-wrap gap-3">
+            <a href="orbit://connect" className="btn btn-primary">Open pairing screen</a>
+            <Link href="/connect" className="btn btn-secondary">Connect another PC</Link>
+          </div>
+        </section>
+
+        <div className="mt-6 grid gap-5 md:grid-cols-2">
+          <article className="glow-card rounded-[24px] p-6">
+            <p className="eyebrow">ACCOUNT</p>
+            <h3 className="mt-3 text-xl font-semibold">{user.user_metadata?.full_name || user.email}</h3>
+            <p className="mt-2 text-sm" style={{ color: "var(--fg-secondary)" }}>{user.email}</p>
+            <div className="mt-5 flex items-center justify-between rounded-xl p-3" style={{ background: "var(--bg-secondary)" }}>
+              <span className="text-sm" style={{ color: "var(--fg-secondary)" }}>Selected plan</span>
+              <span className="text-sm font-semibold capitalize">{plan}</span>
+            </div>
+            <Link href="/pricing" className="link-arrow mt-5">Explore plans and upgrades →</Link>
+          </article>
+
+          <article className="glow-card rounded-[24px] p-6">
+            <p className="eyebrow">SECURITY</p>
+            <h3 className="mt-3 text-xl font-semibold">Your PC stays in control.</h3>
+            <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--fg-secondary)" }}>Pairing is verified on the Windows agent. Your access token is signed by the PC, and the relay only forwards encrypted connection traffic.</p>
+            <div className="mt-5 rounded-xl p-3 text-sm" style={{ background: "var(--bg-secondary)", color: "var(--fg-secondary)" }}>
+              Never share your pairing QR, PIN, or device access link with someone you don’t trust.
+            </div>
+          </article>
         </div>
-      </header>
-
-      <main
-        className="mx-auto w-full max-w-[760px] flex-1 px-4 py-5"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 2rem)" }}
-      >
-        {!online ? (
-          <OfflineNotice status={status} />
-        ) : !loadedApps ? (
-          <div className="grid place-items-center py-24" style={{ color: "var(--fg-tertiary)" }}>
-            <Spinner className="size-6" />
-          </div>
-        ) : (
-          <>
-            <div hidden={tab !== "apps"}>
-              <AppsTab deviceId={pairing.deviceId} apps={apps} favorites={favorites} call={call} onFavoritesChange={setFavorites} />
-            </div>
-            <div hidden={tab !== "windows"}>
-              <WindowsTab deviceId={pairing.deviceId} apps={apps} call={call} active={tab === "windows"} />
-            </div>
-            <div hidden={tab !== "remote"}>
-              <RemoteTab device={device} deviceId={pairing.deviceId} token={pairing.token} appCount={apps.length} call={call} active={tab === "remote"} />
-            </div>
-          </>
-        )}
       </main>
+      <SiteFooter />
     </>
   );
 }
 
-function SegmentButton({
-  current, value, onSelect, icon, children,
-}: {
-  current: Tab; value: Tab; onSelect: (t: Tab) => void;
-  icon: React.ReactNode; children: React.ReactNode;
-}) {
-  const active = current === value;
-  const reduceMotion = useReducedMotion();
-
+function Info({ label, value }: { label: string; value: string }) {
   return (
-    <button
-      aria-pressed={active}
-      onClick={() => onSelect(value)}
-      className="relative flex flex-1 items-center justify-center gap-1.5"
-      style={{ color: active ? "var(--accent)" : "var(--fg-secondary)" }}
-    >
-      {active && (
-        <motion.span
-          layoutId="pc-tab-pill"
-          className="absolute inset-0 rounded-[8px]"
-          style={{ background: "var(--bg-elevated)", boxShadow: "0 1px 3px rgba(0,0,0,0.12), 0 0 18px color-mix(in srgb, var(--accent) 18%, transparent)" }}
-          transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 520, damping: 38, mass: 0.7 }}
-        />
-      )}
-      <span className="relative flex items-center gap-1.5">{icon}{children}</span>
-    </button>
-  );
-}
-
-function OfflineNotice({ status }: { status: string }) {
-  return (
-    <div className="mx-auto max-w-[420px] py-20 text-center">
-      <h2 className="display-md">{status === "connecting" ? "Reaching your PC…" : "Your PC is offline"}</h2>
-      <p className="lede mt-3 text-[16px]">
-        {status === "connecting"
-          ? "Hang on a moment."
-          : "Orbit isn't running on that computer, or it has no internet connection. It will reconnect on its own once it's back."}
-      </p>
+    <div className="rounded-2xl border p-4" style={{ borderColor: "var(--separator-soft)", background: "var(--bg-secondary)" }}>
+      <p className="text-xs font-medium" style={{ color: "var(--fg-tertiary)" }}>{label}</p>
+      <p className="mt-2 break-all text-base font-semibold tabular">{value}</p>
     </div>
   );
 }
