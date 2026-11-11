@@ -314,8 +314,9 @@ export default function LoginPage() {
               <p className="text-xs" style={{ color: "var(--fg-secondary)" }}>Your selected plan</p>
               <p className="mt-1 text-lg font-semibold capitalize">{(user.user_metadata?.orbit_selected_plan as string) || "Free"}</p>
             </div>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <Link href="/connect" className="btn btn-primary w-full">Connect a PC</Link>
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <Link href="/download" className="btn btn-primary w-full">Download Orbit</Link>
+              <Link href="/connect" className="btn btn-secondary w-full">Connect a PC</Link>
               <Link href="/pc" className="btn btn-secondary w-full">Open Orbit</Link>
             </div>
             <button type="button" onClick={signOut} disabled={loading} className="mt-6 text-xs font-semibold" style={{ color: "var(--fg-secondary)" }}>

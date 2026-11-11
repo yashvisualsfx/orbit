@@ -33,22 +33,31 @@ export default function Home() {
 
             <Rise delay={0.18}>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                <a href="/Orbit.exe" className="btn btn-primary">
+                <a href="/download" className="btn btn-primary">
                   <Download className="size-[18px]" />
-                  Download for Windows
+                  Get Orbit for Windows
                 </a>
-                <Link href="/pc" className="btn btn-secondary">
-                  Open Orbit
+                <Link href="/connect" className="btn btn-secondary">
+                  Connect a PC
                 </Link>
               </div>
 
               <p className="mt-4 text-[13px]" style={{ color: "var(--fg-tertiary)" }}>
-                One file. No account, no install wizard, no Node.js.
+                Sign in first, then download the Windows agent and connect your PC securely.
               </p>
             </Rise>
           </div>
 
-          <Rise delay={0.24} className="float-soft mt-14 sm:mt-20">
+          <div className="hero-orbit" aria-hidden="true">
+            <span className="hero-orbit-ring hero-orbit-ring-a" />
+            <span className="hero-orbit-ring hero-orbit-ring-b" />
+            <span className="hero-orbit-ring hero-orbit-ring-c" />
+            <span className="hero-orbit-core" />
+            <span className="hero-orbit-node" />
+            <span className="hero-orbit-label">One secure connection · Anywhere</span>
+          </div>
+
+          <Rise delay={0.24} className="float-soft mt-8 sm:mt-10">
             <PhoneMock />
           </Rise>
         </section>
@@ -116,20 +125,19 @@ export default function Home() {
             <Reveal>
               <h2 className="display-lg text-balance">Set up once. Then never again.</h2>
               <p className="lede mt-5 max-w-[600px]">
-                There is no code to type on the PC and none to type on the phone. The
-                first run does the pairing; every restart after that reconnects on its own.
+                Sign in once, install the agent on Windows, then pair your phone with a QR code. After that, Orbit reconnects automatically whenever your PC is online.
               </p>
             </Reveal>
 
             <ol className="mt-12 grid gap-8 sm:grid-cols-3">
               <Reveal as="li" delay={0.04}>
-                <StepBody n="1" title="Run Orbit.exe" body="Double-click it once. Orbit installs itself for your account, registers itself to start with Windows, and opens your browser already paired." />
+                <StepBody n="1" title="Create your Orbit account" body="Sign in on the Orbit website, then download the Windows agent from your account." />
               </Reveal>
               <Reveal as="li" delay={0.09}>
-                <StepBody n="2" title="Scan the code with your phone" body="The page shows a QR code. Point your camera at it and the phone pairs itself — no Device ID, no PIN." />
+                <StepBody n="2" title="Install Orbit on Windows" body="Open Orbit.exe. It installs the background agent and opens the website without showing a pairing code yet." />
               </Reveal>
               <Reveal as="li" delay={0.14}>
-                <StepBody n="3" title="Add it to your home screen" body="Orbit then behaves like an app, and keeps the pairing for good. Turn the PC on and it is simply online." />
+                <StepBody n="3" title="Connect your PC" body="On the signed-in website, choose Connect a PC. Orbit opens the pairing screen with a QR code and PIN for your phone." />
               </Reveal>
             </ol>
           </div>
@@ -165,17 +173,17 @@ export default function Home() {
           <Reveal className="mx-auto max-w-[640px]">
             <h2 className="display-lg text-balance hero-glow-title">Put it on your PC.</h2>
             <p className="lede mx-auto mt-5 max-w-[480px]">
-              One file, nothing to install alongside it. Windows 10 and 11. The first run
+              One lightweight agent for Windows 10 and 11. Sign in before downloading. The first run
               takes about a minute, most of it indexing your apps.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <a href="/Orbit.exe" className="btn btn-primary">
+              <a href="/download" className="btn btn-primary">
                 <Download className="size-[18px]" />
                 Download Orbit.exe
               </a>
-              <Link href="/pc" className="link-arrow">
-                Already set up? Open Orbit
+              <Link href="/connect" className="link-arrow">
+                Already set up? Connect a PC
                 <ChevronRight className="size-4" strokeWidth={2.2} />
               </Link>
             </div>

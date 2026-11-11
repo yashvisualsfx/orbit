@@ -17,7 +17,7 @@ export function SiteNav() {
           <a href="mailto:godoffserver@gmail.com?subject=Orbit%20Support" className="transition-opacity hover:opacity-60">Support</a>
           <Link href="/login" className="rounded-full px-2 py-2 transition-colors hover:text-[var(--accent)]">Sign in</Link>
           <ThemeToggle />
-          <Link href="/pc" className="rounded-full px-5 py-2.5 text-[14px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.03] active:scale-[0.98]" style={{ background: "var(--accent)" }}>Open Orbit</Link>
+          <Link href="/connect" className="rounded-full px-5 py-2.5 text-[14px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.03] active:scale-[0.98]" style={{ background: "var(--accent)" }}>Connect a PC</Link>
         </div>
 
         <div className="flex items-center gap-2 sm:hidden">
@@ -31,7 +31,7 @@ export function SiteNav() {
               <Link className="rounded-xl px-4 py-3 text-sm hover:bg-[var(--bg-secondary)]" href="/pricing">Pricing</Link>
               <a className="rounded-xl px-4 py-3 text-sm hover:bg-[var(--bg-secondary)]" href="mailto:godoffserver@gmail.com?subject=Orbit%20Support">Support</a>
               <Link className="rounded-xl px-4 py-3 text-sm hover:bg-[var(--bg-secondary)]" href="/login">Sign in</Link>
-              <Link className="rounded-xl px-4 py-3 text-sm font-semibold text-white" style={{ background: "var(--accent)" }} href="/pc">Open Orbit</Link>
+              <Link className="rounded-xl px-4 py-3 text-sm font-semibold text-white" style={{ background: "var(--accent)" }} href="/connect">Connect a PC</Link>
             </div>
           </details>
         </div>

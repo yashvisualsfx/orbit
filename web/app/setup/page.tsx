@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import type { User } from "@supabase/supabase-js";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { SiteNav } from "@/components/site-chrome";
 import { OrbitMark } from "@/components/icons";
 import { Qr } from "@/components/qr";
@@ -8,15 +11,27 @@ import { Qr } from "@/components/qr";
 type Pairing = { deviceId: string; pin: string; name: string; link: string };
 
 export default function SetupPage() {
+  const supabase = getSupabaseBrowserClient();
+  const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [pairing, setPairing] = useState<Pairing | null>(null);
   const [copied, setCopied] = useState<"id" | "pin" | null>(null);
   const loaded = useRef(false);
 
   useEffect(() => {
-    if (loaded.current) return;
+    if (window.location.hash) sessionStorage.setItem("orbit.pendingSetupHash", window.location.hash);
+    if (!supabase) { setAuthReady(true); return; }
+    supabase.auth.getSession().then(({ data }) => { setUser(data.session?.user ?? null); setAuthReady(true); });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => { setUser(session?.user ?? null); setAuthReady(true); });
+    return () => data.subscription.unsubscribe();
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!authReady || !user || user.user_metadata?.orbit_onboarding_completed !== true || loaded.current) return;
     loaded.current = true;
 
-    const params = new URLSearchParams(window.location.hash.slice(1));
+    const pending = window.location.hash || sessionStorage.getItem("orbit.pendingSetupHash") || "";
+    const params = new URLSearchParams(pending.replace(/^#/, ""));
     const deviceId = params.get("d") || "";
     const pin = params.get("p") || "";
     const name = params.get("n") || "Your PC";
@@ -25,6 +40,7 @@ export default function SetupPage() {
     // only, and the QR itself carries it in a URL fragment (never sent to server).
     window.history.replaceState(null, "", window.location.pathname);
 
+    sessionStorage.removeItem("orbit.pendingSetupHash");
     if (!deviceId || !pin) return;
 
     const invite = new URLSearchParams({ d: deviceId, p: pin, n: name });
@@ -32,7 +48,7 @@ export default function SetupPage() {
     // The URL fragment has been consumed; keep pairing details only in page state.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPairing({ deviceId, pin, name, link });
-  }, []);
+  }, [authReady, user]);
 
   async function copy(value: string, kind: "id" | "pin") {
     try {
@@ -59,11 +75,25 @@ export default function SetupPage() {
             </p>
           </header>
 
-          {!pairing ? (
+          {!authReady ? (
+            <section className="inset-group mt-9 p-6 text-center">Checking your Orbit account…</section>
+          ) : !user ? (
+            <section className="inset-group mt-9 p-7 text-center">
+              <h2 className="text-[18px] font-semibold">Sign in to view your pairing code</h2>
+              <p className="lede mt-2 text-[15px]">Orbit requires an account before a PC can be connected. Sign in, then choose Connect a PC to reopen this screen.</p>
+              <Link href="/login" className="btn btn-primary mt-5">Sign in / Create account</Link>
+            </section>
+          ) : user.user_metadata?.orbit_onboarding_completed !== true ? (
+            <section className="inset-group mt-9 p-7 text-center">
+              <h2 className="text-[18px] font-semibold">Finish your Orbit account setup</h2>
+              <p className="lede mt-2 text-[15px]">Choose your plan and complete the welcome step before pairing.</p>
+              <Link href="/login" className="btn btn-primary mt-5">Continue setup</Link>
+            </section>
+          ) : !pairing ? (
             <section className="inset-group mt-9 p-6 text-center">
               <h2 className="text-[18px] font-semibold">Pairing details unavailable</h2>
               <p className="lede mt-2 text-[15px]">
-                Close this tab and open Orbit.exe again. Keep the app running while pairing.
+                Return to the signed-in Orbit website, choose Connect a PC, and keep the Windows agent running.
               </p>
             </section>
           ) : (

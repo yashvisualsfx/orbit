@@ -16,11 +16,17 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const AGENT = path.join(ROOT, 'agent');
 const OUT_DIR = path.join(AGENT, 'dist');
 const EXE = path.join(OUT_DIR, 'Orbit.exe');
-const PUBLIC_EXE = path.join(ROOT, 'web', 'public', 'Orbit.exe');
+const PRIVATE_EXE = path.join(ROOT, 'web', 'private', 'Orbit.exe');
 
+const BUILD_FILE = path.join(AGENT, 'src', 'build.json');
+let stamped = {};
+try { stamped = JSON.parse(fs.readFileSync(BUILD_FILE, 'utf8')); } catch { /* use safe defaults below */ }
+
+// Preserve the relay already stamped into the agent unless an explicit --relay
+// is supplied. This avoids silently moving a working install to another host.
 const DEFAULTS = {
-  relay: 'wss://orbit-sjdy.onrender.com',
-  web: 'https://orbit-rho-ecru.vercel.app',
+  relay: stamped.relay || 'wss://orbit-sjdy.onrender.com',
+  web: stamped.web || 'https://orbit-rho-ecru.vercel.app',
 };
 
 function arg(name, fallback) {
@@ -40,8 +46,7 @@ if (!/^https?:\/\//.test(web)) {
   process.exit(1);
 }
 
-const buildFile = path.join(AGENT, 'src', 'build.json');
-fs.writeFileSync(buildFile, JSON.stringify({ relay, web }, null, 2) + '\n');
+fs.writeFileSync(BUILD_FILE, JSON.stringify({ relay, web }, null, 2) + '\n');
 console.log(`stamped  relay ${relay}`);
 console.log(`stamped  web   ${web}`);
 
@@ -182,8 +187,8 @@ try {
   process.exit(1);
 }
 
-fs.mkdirSync(path.dirname(PUBLIC_EXE), { recursive: true });
-fs.copyFileSync(EXE, PUBLIC_EXE);
+fs.mkdirSync(path.dirname(PRIVATE_EXE), { recursive: true });
+fs.copyFileSync(EXE, PRIVATE_EXE);
 
 const bytes = fs.statSync(EXE).size;
 const sha = createHash('sha256').update(fs.readFileSync(EXE)).digest('hex');
@@ -193,5 +198,5 @@ console.log(`  ${EXE}`);
 console.log(`  ${PUBLIC_EXE}`);
 console.log(`  ${(bytes / 1024 / 1024).toFixed(1)} MB   sha256 ${sha.slice(0, 16)}…`);
 console.log('');
-console.log('  Deploy the website so /Orbit.exe serves the new build:');
-console.log('    cd web && vercel --prod --yes');
+console.log('  Upload this file to the private Supabase Storage bucket: orbit-downloads / Orbit.exe');
+console.log('  The signed-in website will issue a short-lived download link.');
