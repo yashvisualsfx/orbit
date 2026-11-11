@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { THEME_SCRIPT, ThemeProvider } from "@/lib/theme";
+import { ProUpgradeNudge } from "@/components/pro-upgrade-nudge";
 
 export const metadata: Metadata = {
   title: "Orbit — Your PC. From anywhere.",
@@ -44,7 +45,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="min-h-full flex flex-col">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          <ProUpgradeNudge />
+        </ThemeProvider>
       </body>
     </html>
   );
